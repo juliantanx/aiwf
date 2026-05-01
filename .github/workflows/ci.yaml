@@ -56,7 +56,7 @@ jobs:
   publish:
     needs: [build, lint]
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.NPM_AUTOMATION_TOKEN != ''
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     permissions:
       contents: read
       id-token: write
