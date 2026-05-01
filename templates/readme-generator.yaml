@@ -1,0 +1,42 @@
+apiVersion: aiwf/v1
+kind: Workflow
+name: readme-generator
+version: 1.0.0
+description: Generate README documentation for a project
+
+triggers:
+  - manual
+
+inputs:
+  code:
+    type: string
+    description: Project source code or file contents
+    required: true
+  projectName:
+    type: string
+    description: Project name
+    required: true
+
+steps:
+  - id: document
+    agent: doc-writer
+    input:
+      code: ${{ inputs.code }}
+      format: markdown
+
+  - id: summarize
+    agent: summarizer
+    input:
+      content: ${{ steps.document.output.documentation }}
+      max_length: 200
+
+output:
+  format: markdown
+  readme: |
+    # ${{ inputs.projectName }}
+
+    ${{ steps.summarize.output.summary }}
+
+    ## Documentation
+
+    ${{ steps.document.output.documentation }}

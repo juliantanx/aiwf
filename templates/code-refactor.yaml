@@ -1,0 +1,37 @@
+apiVersion: aiwf/v1
+kind: Workflow
+name: code-refactor
+version: 1.0.0
+description: AI-powered code refactoring suggestions
+
+triggers:
+  - manual
+
+inputs:
+  code:
+    type: string
+    description: Code to analyze for refactoring
+    required: true
+  focus:
+    type: string
+    description: Refactoring focus (performance, readability, maintainability)
+    default: readability
+
+steps:
+  - id: analyze
+    agent: analyzer
+    input:
+      code: ${{ inputs.code }}
+      focus: ${{ inputs.focus }}
+
+  - id: suggest
+    agent: coder
+    input:
+      prompt: Suggest refactoring improvements for the following code, focusing on ${{ inputs.focus }}
+      context: ${{ steps.analyze.output.analysis }}
+      language: typescript
+
+output:
+  format: markdown
+  suggestions: ${{ steps.suggest.output.code }}
+  explanation: ${{ steps.suggest.output.explanation }}

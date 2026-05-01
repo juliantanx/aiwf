@@ -1,0 +1,33 @@
+apiVersion: aiwf/v1
+kind: Workflow
+name: api-design
+version: 1.0.0
+description: Design API specifications from requirements
+
+triggers:
+  - manual
+
+inputs:
+  requirements:
+    type: string
+    description: API requirements description
+    required: true
+  format:
+    type: string
+    description: Output format (openapi, graphql, rest)
+    default: openapi
+
+steps:
+  - id: design
+    agent: coder
+    input:
+      prompt: Design an API specification based on these requirements
+      context: |
+        Requirements: ${{ inputs.requirements }}
+        Format: ${{ inputs.format }}
+        Include: endpoints, request/response schemas, error handling
+
+output:
+  format: markdown
+  specification: ${{ steps.design.output.code }}
+  explanation: ${{ steps.design.output.explanation }}

@@ -1,0 +1,40 @@
+apiVersion: aiwf/v1
+kind: Workflow
+name: sql-analyzer
+version: 1.0.0
+description: Analyze SQL queries for optimization and security
+
+triggers:
+  - manual
+
+inputs:
+  sql:
+    type: string
+    description: SQL query to analyze
+    required: true
+  dialect:
+    type: string
+    description: SQL dialect (mysql, postgresql, sqlite)
+    default: postgresql
+
+steps:
+  - id: analyze
+    agent: analyzer
+    input:
+      code: ${{ inputs.sql }}
+      focus: performance,security
+
+  - id: optimize
+    agent: coder
+    condition: ${{ steps.analyze.output.issues }}
+    input:
+      prompt: Optimize this SQL query
+      context: |
+        Original SQL: ${{ inputs.sql }}
+        Issues found: ${{ steps.analyze.output.issues }}
+        Dialect: ${{ inputs.dialect }}
+
+output:
+  format: markdown
+  issues: ${{ steps.analyze.output.issues }}
+  optimizedSql: ${{ steps.optimize.output.code }}

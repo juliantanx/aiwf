@@ -3,8 +3,10 @@ import inquirer from 'inquirer';
 import { join } from 'path';
 import { findProjectRoot } from '../storage/config.js';
 import { saveWorkflow, workflowExists } from '../storage/workflow.js';
+import { saveCustomAgent } from '../storage/agents.js';
+import { agentRegistry } from '../agents/registry.js';
 import { logger } from '../utils/logger.js';
-import type { Workflow } from '../core/types.js';
+import type { Workflow, AgentConfig } from '../core/types.js';
 
 type CreateType = 'workflow' | 'agent';
 
@@ -226,8 +228,103 @@ async function createWorkflow(projectRoot: string, name?: string, options: Creat
 }
 
 async function createAgent(projectRoot: string, name?: string, options: CreateOptions = {}): Promise<void> {
-  logger.info('Custom agent creation is not yet implemented.');
-  logger.raw('You can extend built-in agents in your workflow configuration.');
+  // Get agent ID
+  if (!name) {
+    const answer = await inquirer.prompt([
+      {
+        type: 'input',
+        name: 'name',
+        message: 'Agent ID:',
+        validate: (input) => {
+          if (!input) return 'ID is required';
+          if (!/^[a-z0-9-]+$/.test(input)) {
+            return 'ID must be lowercase letters, numbers, and hyphens only';
+          }
+          return true;
+        },
+      },
+    ]);
+    name = answer.name;
+  }
+
+  // Get agent details
+  const answers = await inquirer.prompt([
+    {
+      type: 'input',
+      name: 'agentName',
+      message: 'Agent display name:',
+      default: name,
+    },
+    {
+      type: 'input',
+      name: 'description',
+      message: 'Description:',
+    },
+    {
+      type: 'confirm',
+      name: 'extendBase',
+      message: 'Extend a built-in agent?',
+      default: false,
+    },
+  ]);
+
+  let extendsAgent: string | undefined;
+  if (answers.extendBase) {
+    const baseAgents = agentRegistry.listIds();
+    const { base } = await inquirer.prompt([
+      {
+        type: 'list',
+        name: 'base',
+        message: 'Select base agent:',
+        choices: baseAgents,
+      },
+    ]);
+    extendsAgent = base;
+  }
+
+  const { customPrompt } = await inquirer.prompt([
+    {
+      type: 'confirm',
+      name: 'customPrompt',
+      message: 'Add custom system prompt?',
+      default: false,
+    },
+  ]);
+
+  let systemPrompt: string | undefined;
+  if (customPrompt) {
+    const { prompt } = await inquirer.prompt([
+      {
+        type: 'editor',
+        name: 'prompt',
+        message: 'System prompt (opens in editor):',
+      },
+    ]);
+    systemPrompt = prompt;
+  }
+
+  const config: AgentConfig & { extends?: string } = {
+    id: name,
+    name: answers.agentName,
+    description: answers.description,
+    extends: extendsAgent,
+    inputSchema: {},
+    outputSchema: {},
+  };
+
+  if (systemPrompt) {
+    config.systemPrompt = systemPrompt;
+  }
+
+  // Save agent
+  const filePath = await saveCustomAgent(projectRoot, config);
+  logger.success(`Agent created: ${name}`);
+  logger.raw(`Path: ${filePath}`);
+  logger.newline();
+  logger.raw('Use in a workflow:');
+  logger.raw(`  steps:`);
+  logger.raw(`    - id: step1`);
+  logger.raw(`      agent: ${name}`);
 }
 
 export function registerCreateCommand(program: Command): void {

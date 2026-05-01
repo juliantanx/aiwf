@@ -1,0 +1,59 @@
+name: AI Documentation Generator
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+  workflow_dispatch:
+
+jobs:
+  generate-docs:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install aiwf
+        run: npm install -g aiwf
+
+      - name: Initialize aiwf
+        run: aiwf init --path .
+        continue-on-error: true
+
+      - name: Generate documentation
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          # Find all source files
+          find src -name "*.ts" -type f | while read file; do
+            output_file="docs/${file#src/}"
+            output_file="${output_file%.ts}.md"
+            mkdir -p "$(dirname "$output_file")"
+            echo "Generating docs for $file"
+            aiwf run doc-gen \
+              --input code="$(cat $file)" \
+              --output "$output_file" \
+              --format markdown || true
+          done
+
+      - name: Commit documentation
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add docs/ || true
+          git diff --quiet && git diff --staged --quiet || \
+            (git commit -m "docs: Update AI-generated documentation" && \
+             git push)

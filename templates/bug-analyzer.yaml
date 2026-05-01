@@ -1,0 +1,38 @@
+apiVersion: aiwf/v1
+kind: Workflow
+name: bug-analyzer
+version: 1.0.0
+description: Analyze code for potential bugs and issues
+
+triggers:
+  - manual
+
+inputs:
+  code:
+    type: string
+    description: Code to analyze
+    required: true
+  error:
+    type: string
+    description: Error message or description (optional)
+    required: false
+
+steps:
+  - id: analyze
+    agent: analyzer
+    input:
+      code: ${{ inputs.code }}
+      focus: bugs,errors
+
+  - id: debug
+    agent: reviewer
+    condition: ${{ inputs.error }}
+    input:
+      code: ${{ inputs.code }}
+      type: debug
+      error: ${{ inputs.error }}
+
+output:
+  format: markdown
+  issues: ${{ steps.analyze.output.issues }}
+  debugAnalysis: ${{ steps.debug.output }}

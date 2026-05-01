@@ -1,10 +1,13 @@
 import { Command } from 'commander';
 import { join } from 'path';
 import { findProjectRoot, loadConfig } from '../storage/config.js';
-import { installGitHook, uninstallGitHook, getGitHookPath, isGitRepo } from '../utils/git.js';
+import { installGitHook, uninstallGitHook, getGitHookPath, isGitRepo, getGitContext } from '../utils/git.js';
+import { loadWorkflow } from '../storage/workflow.js';
+import { runWorkflow } from '../core/runner.js';
+import { modelRegistry } from '../models/registry.js';
 import { logger } from '../utils/logger.js';
 
-type HooksAction = 'install' | 'uninstall' | 'list';
+type HooksAction = 'install' | 'uninstall' | 'list' | 'exec';
 
 interface HooksOptions {
   hook?: string;
@@ -33,9 +36,12 @@ export async function hooksCommand(action: HooksAction, options: HooksOptions = 
     case 'list':
       await listHooks(projectRoot);
       break;
+    case 'exec':
+      await execHook(projectRoot, options.hook);
+      break;
     default:
       logger.error(`Unknown action: ${action}`);
-      logger.raw('Valid actions: install, uninstall, list');
+      logger.raw('Valid actions: install, uninstall, list, exec');
   }
 }
 
@@ -127,6 +133,183 @@ async function listHooks(projectRoot: string): Promise<void> {
         logger.raw(`      failFast: ${wf.failFast}`);
       }
     }
+  }
+}
+
+async function execHook(projectRoot: string, hookName?: string): Promise<void> {
+  if (!hookName) {
+    logger.error('Hook name is required for exec action.');
+    process.exit(1);
+  }
+
+  // Extract hook name from path if full path provided
+  const hook = hookName.includes('/') ? hookName.split('/').pop() ?? hookName : hookName;
+
+  const config = await loadConfig(projectRoot);
+  modelRegistry.setConfig(config);
+
+  const hooks = config.hooks ?? {};
+  const hookConfig = hooks[hook];
+
+  if (!hookConfig || hookConfig.length === 0) {
+    // No workflow configured for this hook, exit silently
+    process.exit(0);
+  }
+
+  // Get git context for branch filtering
+  const gitContext = await getGitContext(projectRoot);
+
+  for (const hookWorkflow of hookConfig) {
+    // Check branch filter
+    if (hookWorkflow.branches && hookWorkflow.branches.length > 0) {
+      if (!hookWorkflow.branches.includes(gitContext.branch)) {
+        logger.debug(`Skipping workflow ${hookWorkflow.workflow} - branch ${gitContext.branch} not in filter`);
+        continue;
+      }
+    }
+
+    logger.info(`Running workflow: ${hookWorkflow.workflow}`);
+
+    const workflow = await loadWorkflow(projectRoot, hookWorkflow.workflow);
+
+    if (!workflow) {
+      logger.error(`Workflow not found: ${hookWorkflow.workflow}`);
+      if (hookWorkflow.failFast) {
+        process.exit(1);
+      }
+      continue;
+    }
+
+    // Prepare inputs based on hook type
+    const inputs = await prepareHookInputs(hook, projectRoot);
+
+    try {
+      const result = await runWorkflow(projectRoot, workflow, {
+        inputs,
+        trigger: 'hook',
+      });
+
+      if (!result.success) {
+        logger.error(`Workflow ${hookWorkflow.workflow} failed: ${result.error}`);
+        if (hookWorkflow.failFast) {
+          process.exit(1);
+        }
+      } else {
+        logger.success(`Workflow ${hookWorkflow.workflow} completed`);
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      logger.error(`Workflow ${hookWorkflow.workflow} failed: ${message}`);
+      if (hookWorkflow.failFast) {
+        process.exit(1);
+      }
+    }
+  }
+
+  process.exit(0);
+}
+
+async function prepareHookInputs(hook: string, projectRoot: string): Promise<Record<string, unknown>> {
+  const inputs: Record<string, unknown> = {};
+
+  switch (hook) {
+    case 'pre-commit':
+      // Get staged files
+      inputs.stagedFiles = await getStagedFiles(projectRoot);
+      inputs.diff = await getStagedDiff(projectRoot);
+      break;
+
+    case 'pre-push':
+      // Get commits being pushed
+      inputs.commits = await getPushCommits(projectRoot);
+      inputs.diff = await getPushDiff(projectRoot);
+      break;
+
+    case 'commit-msg':
+      // Get commit message
+      inputs.message = await getCommitMessage(projectRoot);
+      break;
+
+    case 'post-merge':
+      // Get merged commits
+      inputs.mergedCommits = await getMergedCommits(projectRoot);
+      break;
+  }
+
+  return inputs;
+}
+
+async function getStagedFiles(projectRoot: string): Promise<string[]> {
+  const { exec } = await import('child_process');
+  const { promisify } = await import('util');
+  const execAsync = promisify(exec);
+
+  try {
+    const { stdout } = await execAsync('git diff --cached --name-only', { cwd: projectRoot });
+    return stdout.trim().split('\n').filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
+async function getStagedDiff(projectRoot: string): Promise<string> {
+  const { exec } = await import('child_process');
+  const { promisify } = await import('util');
+  const execAsync = promisify(exec);
+
+  try {
+    const { stdout } = await execAsync('git diff --cached', { cwd: projectRoot });
+    return stdout;
+  } catch {
+    return '';
+  }
+}
+
+async function getPushCommits(projectRoot: string): Promise<string[]> {
+  const { exec } = await import('child_process');
+  const { promisify } = await import('util');
+  const execAsync = promisify(exec);
+
+  try {
+    const { stdout } = await execAsync('git log @{u}..HEAD --oneline', { cwd: projectRoot });
+    return stdout.trim().split('\n').filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
+async function getPushDiff(projectRoot: string): Promise<string> {
+  const { exec } = await import('child_process');
+  const { promisify } = await import('util');
+  const execAsync = promisify(exec);
+
+  try {
+    const { stdout } = await execAsync('git diff @{u}..HEAD', { cwd: projectRoot });
+    return stdout;
+  } catch {
+    return '';
+  }
+}
+
+async function getCommitMessage(projectRoot: string): Promise<string> {
+  const { readFile } = await import('fs/promises');
+  try {
+    return await readFile(join(projectRoot, '.git', 'COMMIT_EDITMSG'), 'utf-8');
+  } catch {
+    return '';
+  }
+}
+
+async function getMergedCommits(projectRoot: string): Promise<string[]> {
+  const { exec } = await import('child_process');
+  const { promisify } = await import('util');
+  const execAsync = promisify(exec);
+
+  try {
+    const { stdout } = await execAsync('git log ORIG_HEAD..HEAD --oneline', { cwd: projectRoot });
+    return stdout.trim().split('\n').filter(Boolean);
+  } catch {
+    return [];
   }
 }
 

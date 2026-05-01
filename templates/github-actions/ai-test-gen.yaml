@@ -1,0 +1,74 @@
+name: AI Test Generation
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/**'
+  workflow_dispatch:
+    inputs:
+      files:
+        description: 'Files to generate tests for (comma-separated)'
+        required: false
+
+jobs:
+  generate-tests:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install aiwf
+        run: npm install -g aiwf
+
+      - name: Initialize aiwf
+        run: aiwf init --path .
+        continue-on-error: true
+
+      - name: Get changed files
+        id: changed-files
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ inputs.files }}" ]; then
+            echo "files=${{ inputs.files }}" >> $GITHUB_OUTPUT
+          else
+            files=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep '\.ts$\|\.js$' | tr '\n' ',')
+            echo "files=$files" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Generate tests
+        id: generate
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          IFS=',' read -ra FILE_ARRAY <<< "${{ steps.changed-files.outputs.files }}"
+          for file in "${FILE_ARRAY[@]}"; do
+            if [ -f "$file" ]; then
+              echo "Generating tests for $file"
+              aiwf run test-gen \
+                --input code="$(cat $file)" \
+                --output "tests/${file%.ts}.test.ts"
+            fi
+          done
+
+      - name: Create PR with tests
+        if: hashFiles('tests/') != ''
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add tests/ || true
+          git diff --quiet && git diff --staged --quiet || \
+            (git commit -m "test: Add AI-generated tests" && \
+             git push origin HEAD:${{ github.head_ref }})

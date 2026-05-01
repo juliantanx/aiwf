@@ -7,6 +7,7 @@ import type {
   AgentOutput,
   RunResult,
   GitContext,
+  AiwfConfig,
 } from './types.js';
 import { VariableResolver, createResolver, generateRunId } from './resolver.js';
 import { agentRegistry } from '../agents/registry.js';
@@ -16,7 +17,7 @@ import { getGitContext } from '../utils/git.js';
 import { logger } from '../utils/logger.js';
 import { withRetry, getErrorType } from '../utils/retry.js';
 import { saveRun, saveRunOutput, getRunsPath } from '../storage/run.js';
-import { getAiwfPath } from '../storage/config.js';
+import { loadConfig, getAiwfPath } from '../storage/config.js';
 
 export interface RunnerOptions {
   dryRun?: boolean;
@@ -24,11 +25,13 @@ export interface RunnerOptions {
   noSave?: boolean;
   inputs?: Record<string, unknown>;
   modelOverride?: string;
+  trigger?: 'manual' | 'hook' | 'ci' | 'schedule';
 }
 
 export class WorkflowRunner {
   private projectRoot: string;
   private resolver: VariableResolver;
+  private config: AiwfConfig | null = null;
 
   constructor(projectRoot: string) {
     this.projectRoot = projectRoot;
@@ -40,6 +43,9 @@ export class WorkflowRunner {
     const startTime = new Date();
 
     logger.setVerbose(options.verbose ?? false);
+
+    // Load config for fallback settings
+    this.config = await loadConfig(this.projectRoot);
 
     // Initialize context
     const gitContext = await getGitContext(this.projectRoot);
@@ -72,7 +78,7 @@ export class WorkflowRunner {
       workflow: workflow.name,
       version: workflow.version,
       status: 'running',
-      trigger: 'manual',
+      trigger: options.trigger ?? 'manual',
       timestamp: {
         start: startTime,
       },
@@ -138,8 +144,8 @@ export class WorkflowRunner {
         // Resolve inputs
         const resolvedInput = this.resolver.resolve(step.input);
 
-        // Execute step with retry
-        const output = await this.executeStep(
+        // Execute step with retry and fallback
+        const output = await this.executeStepWithFallback(
           step,
           resolvedInput,
           context,
@@ -154,7 +160,7 @@ export class WorkflowRunner {
         stepRecord.status = output.success ? 'success' : 'failed';
         stepRecord.endTime = new Date();
         stepRecord.duration = stepRecord.endTime.getTime() - (stepRecord.startTime?.getTime() ?? 0);
-        stepRecord.model = step.model ?? workflow.model ?? modelRegistry.getDefaultModel();
+        stepRecord.model = output.modelUsed ?? step.model ?? workflow.model ?? modelRegistry.getDefaultModel();
         stepRecord.tokens = output.tokens;
 
         if (output.tokens) {
@@ -223,13 +229,13 @@ export class WorkflowRunner {
     };
   }
 
-  private async executeStep(
+  private async executeStepWithFallback(
     step: WorkflowStep,
     input: Record<string, unknown>,
     context: ExecutionContext,
     defaultModel?: string,
     modelOverride?: string
-  ): Promise<AgentOutput> {
+  ): Promise<AgentOutput & { modelUsed?: string }> {
     const agent = agentRegistry.get(step.agent);
     if (!agent) {
       return {
@@ -239,32 +245,95 @@ export class WorkflowRunner {
       };
     }
 
-    const modelId = modelOverride ?? step.model ?? defaultModel ?? modelRegistry.getDefaultModel();
-
-    // Set model for agent if it supports it
-    const agentConfig = agent.config;
-    if (agentConfig.defaultModel !== modelId) {
-      // Clone agent with different model (simplified approach)
-    }
-
-    // Execute with retry
+    // Build model chain for fallback
+    const modelChain = this.buildModelChain(step.model ?? defaultModel, modelOverride);
     const retryConfig = step.retry ?? {};
 
-    return withRetry(
-      async () => {
-        return agent.execute(input, context);
-      },
-      {
-        maxAttempts: retryConfig.maxAttempts ?? 1,
-        backoff: retryConfig.backoff ?? 'exponential',
-        initialDelay: retryConfig.initialDelay ?? 1000,
-        maxDelay: retryConfig.maxDelay ?? 30000,
-        retryOn: ['rate_limit', 'timeout', 'server_error'],
-      },
-      (ctx) => {
-        logger.debug(`Retry ${ctx.attempt}/${ctx.maxAttempts} after ${ctx.delay}ms`);
+    let lastError: Error | null = null;
+
+    for (const modelId of modelChain) {
+      logger.debug(`Trying model: ${modelId}`);
+
+      try {
+        const result = await withRetry(
+          async () => {
+            return agent.execute(input, context);
+          },
+          {
+            maxAttempts: retryConfig.maxAttempts ?? 3,
+            backoff: retryConfig.backoff ?? 'exponential',
+            initialDelay: retryConfig.initialDelay ?? 1000,
+            maxDelay: retryConfig.maxDelay ?? 30000,
+            retryOn: ['rate_limit', 'timeout', 'server_error'],
+          },
+          (ctx) => {
+            logger.debug(`Retry ${ctx.attempt}/${ctx.maxAttempts} after ${ctx.delay}ms`);
+          }
+        );
+
+        return {
+          ...result,
+          modelUsed: modelId,
+        };
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error('Unknown error');
+        const errorType = getErrorType(lastError);
+
+        logger.debug(`Model ${modelId} failed: ${errorType}`);
+
+        // Check if this error should trigger fallback
+        if (!this.shouldFallback(errorType)) {
+          // Non-fallback error, return immediately
+          return {
+            success: false,
+            data: null,
+            error: lastError.message,
+            modelUsed: modelId,
+          };
+        }
+
+        // Log fallback
+        if (modelChain.indexOf(modelId) < modelChain.length - 1) {
+          logger.warn(`Model ${modelId} failed, falling back to next model`);
+        }
       }
-    );
+    }
+
+    // All models failed
+    return {
+      success: false,
+      data: null,
+      error: lastError?.message ?? 'All models failed',
+      modelUsed: modelChain[modelChain.length - 1],
+    };
+  }
+
+  private buildModelChain(stepModel?: string, overrideModel?: string): string[] {
+    const chain: string[] = [];
+
+    // Primary model
+    const primaryModel = overrideModel ?? stepModel ?? modelRegistry.getDefaultModel();
+    chain.push(primaryModel);
+
+    // Fallback models from config
+    if (this.config?.fallback?.enabled && this.config.fallback.modelChain) {
+      for (const fallbackModel of this.config.fallback.modelChain) {
+        if (!chain.includes(fallbackModel)) {
+          chain.push(fallbackModel);
+        }
+      }
+    }
+
+    return chain;
+  }
+
+  private shouldFallback(errorType: string): boolean {
+    if (!this.config?.fallback?.enabled) {
+      return false;
+    }
+
+    const triggers = this.config.fallback.trigger ?? [];
+    return triggers.some(t => t.errorType === errorType || t.errorType === '*');
   }
 
   private validateInputs(workflow: Workflow, inputs: Record<string, unknown>): string[] {
