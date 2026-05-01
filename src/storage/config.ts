@@ -5,9 +5,9 @@ import { parseConfigYaml } from '../core/parser.js';
 import { join, parse, dirname } from 'path';
 import { writeFile } from 'fs/promises';
 import yaml from 'js-yaml';
+import { AIWF_DIR } from './constants.js';
 
 const CONFIG_MODULE_NAME = 'aiwf';
-const AIWF_DIR = '.ai-workflows';
 
 export async function findProjectRoot(startPath: string = process.cwd()): Promise<string | null> {
   let currentPath = startPath;

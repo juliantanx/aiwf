@@ -10,7 +10,7 @@ const REVIEWER_SYSTEM_PROMPT = `You are an expert code reviewer. Your role is to
 
 Be constructive and focus on meaningful issues, not nitpicks.`;
 
-const REVIEWER_USER_PROMPT = `Review the following code${InputHasKey('type', ' focusing on {type} aspects')}:
+const REVIEWER_USER_PROMPT_TEMPLATE = `Review the following code{type_section}:
 
 {code}
 
@@ -31,10 +31,6 @@ Provide your review in the following JSON format:
   "overall_rating": "1-10",
   "recommendations": ["General recommendations"]
 }`;
-
-function InputHasKey(key: string, template: string): string {
-  return template;
-}
 
 export class ReviewerAgent extends Agent {
   readonly config: AgentConfig = {
@@ -72,24 +68,15 @@ export class ReviewerAgent extends Agent {
       return this.formatError('Input "code" is required and must be a string');
     }
 
-    let userPrompt = REVIEWER_USER_PROMPT;
+    const typeSection = type ? ` focusing on ${type} aspects` : '';
 
-    if (type) {
-      userPrompt = userPrompt.replace(
-        '${InputHasKey(\'type\', \' focusing on {type} aspects\')}',
-        ` focusing on ${type} aspects`
-      );
-    } else {
-      userPrompt = userPrompt.replace(
-        '${InputHasKey(\'type\', \' focusing on {type} aspects\')}',
-        ''
-      );
-    }
+    let userPrompt = REVIEWER_USER_PROMPT_TEMPLATE
+      .replace('{type_section}', typeSection)
+      .replace('{code}', code);
 
     // Include previous analysis if provided
-    let fullPrompt = userPrompt.replace('{code}', code).replace('{type}', type ?? '');
     if (analysis) {
-      fullPrompt += `\n\nConsider this previous analysis:\n${JSON.stringify(analysis, null, 2)}`;
+      userPrompt += `\n\nConsider this previous analysis:\n${JSON.stringify(analysis, null, 2)}`;
     }
 
     const modelId = this.config.defaultModel ?? 'anthropic/claude-sonnet-4-6';
@@ -99,7 +86,7 @@ export class ReviewerAgent extends Agent {
         modelId,
         [
           { role: 'system', content: REVIEWER_SYSTEM_PROMPT },
-          { role: 'user', content: fullPrompt },
+          { role: 'user', content: userPrompt },
         ]
       );
 

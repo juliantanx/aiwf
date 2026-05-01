@@ -289,7 +289,8 @@ export async function exportRunCommand(
   }
 
   const format = options.format ?? 'json';
-  const outputPath = `${runId}-export.${format}`;
+  const ext = format === 'markdown' ? 'md' : format;
+  const outputPath = join(process.cwd(), `${runId}-export.${ext}`);
 
   let content: string;
 
@@ -368,7 +369,7 @@ export function registerRunsCommand(program: Command): void {
     .command('runs <action>')
     .description('View run records')
     .option('-w, --workflow <name>', 'Workflow name')
-    .option('-n, --last <n>', 'Number of runs to show', parseInt)
+    .option('-n, --last <n>', 'Number of runs to show', (s: string) => parseInt(s, 10))
     .option('-f, --format <format>', 'Output format')
     .action(runsCommand);
 

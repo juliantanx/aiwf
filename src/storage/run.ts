@@ -3,9 +3,7 @@ import { readdir, stat, mkdir, writeFile, rm } from 'fs/promises';
 import type { RunRecord } from '../core/types.js';
 import { fileExists, readJson, writeJson, ensureDir } from '../utils/file.js';
 import { logger } from '../utils/logger.js';
-
-const AIWF_DIR = '.ai-workflows';
-const RUNS_DIR = 'runs';
+import { AIWF_DIR, RUNS_DIR } from './constants.js';
 
 export async function getRunsPath(projectRoot: string): Promise<string> {
   return join(projectRoot, AIWF_DIR, RUNS_DIR);

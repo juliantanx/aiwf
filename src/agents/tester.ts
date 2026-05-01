@@ -9,11 +9,11 @@ const TESTER_SYSTEM_PROMPT = `You are an expert test engineer. Your role is to:
 - Write clear, maintainable tests
 - Include both positive and negative test cases`;
 
-const TESTER_USER_PROMPT = `Generate tests for the following code:
+const TESTER_USER_PROMPT_TEMPLATE = `Generate tests for the following code:
 
 {code}
 
-${InputHasKey('framework', 'Testing framework: {framework}')}
+{framework_section}
 
 Provide your response in the following JSON format:
 {
@@ -28,10 +28,6 @@ Provide your response in the following JSON format:
   ],
   "setup_required": ["Any setup or dependencies needed"]
 }`;
-
-function InputHasKey(key: string, template: string): string {
-  return template;
-}
 
 export class TesterAgent extends Agent {
   readonly config: AgentConfig = {
@@ -67,19 +63,11 @@ export class TesterAgent extends Agent {
       return this.formatError('Input "code" is required and must be a string');
     }
 
-    let userPrompt = TESTER_USER_PROMPT.replace('{code}', code);
+    const frameworkSection = framework ? `Testing framework: ${framework}` : '';
 
-    if (framework) {
-      userPrompt = userPrompt.replace(
-        '${InputHasKey(\'framework\', \'Testing framework: {framework}\')}',
-        `Testing framework: ${framework}`
-      );
-    } else {
-      userPrompt = userPrompt.replace(
-        '${InputHasKey(\'framework\', \'Testing framework: {framework}\')}',
-        ''
-      );
-    }
+    const userPrompt = TESTER_USER_PROMPT_TEMPLATE
+      .replace('{code}', code)
+      .replace('{framework_section}', frameworkSection);
 
     const modelId = this.config.defaultModel ?? 'anthropic/claude-sonnet-4-6';
 

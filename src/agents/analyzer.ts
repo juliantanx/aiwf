@@ -1,7 +1,6 @@
 import { Agent } from './base.js';
 import type { AgentInput, AgentOutput, AgentConfig, ExecutionContext } from '../core/types.js';
 import { modelRegistry } from '../models/registry.js';
-import { estimateCost } from '../models/interface.js';
 
 const ANALYZER_SYSTEM_PROMPT = `You are an expert code analyzer. Your task is to analyze code and provide insights on:
 - Code quality issues
@@ -12,7 +11,7 @@ const ANALYZER_SYSTEM_PROMPT = `You are an expert code analyzer. Your task is to
 
 Provide a structured analysis with clear categorization.`;
 
-const ANALYZER_USER_PROMPT = `Analyze the following code${InputHasKey('focus', ' with focus on: {focus}')}:
+const ANALYZER_USER_PROMPT_TEMPLATE = `Analyze the following code{focus_section}:
 
 {code}
 
@@ -36,10 +35,6 @@ Provide your analysis in the following JSON format:
   "has_security_concern": true|false,
   "recommendations": ["list of improvement suggestions"]
 }`;
-
-function InputHasKey(key: string, template: string): string {
-  return template;
-}
 
 export class AnalyzerAgent extends Agent {
   readonly config: AgentConfig = {
@@ -69,26 +64,17 @@ export class AnalyzerAgent extends Agent {
 
   async execute(input: AgentInput, context: ExecutionContext): Promise<AgentOutput> {
     const code = input['code'];
-    const focus = typeof input['focus'] === 'string' ? input['focus'] : '';
+    const focus = typeof input['focus'] === 'string' ? input['focus'] as string : '';
 
     if (!code || typeof code !== 'string') {
       return this.formatError('Input "code" is required and must be a string');
     }
 
-    let systemPrompt = ANALYZER_SYSTEM_PROMPT;
-    let userPrompt = ANALYZER_USER_PROMPT;
+    const focusSection = focus ? ` with focus on: ${focus}` : '';
 
-    if (focus) {
-      userPrompt = userPrompt.replace(
-        '${InputHasKey(\'focus\', \' with focus on: {focus}\')}',
-        ` with focus on: ${focus}`
-      );
-    } else {
-      userPrompt = userPrompt.replace(
-        '${InputHasKey(\'focus\', \' with focus on: {focus}\')}',
-        ''
-      );
-    }
+    const userPrompt = ANALYZER_USER_PROMPT_TEMPLATE
+      .replace('{focus_section}', focusSection)
+      .replace('{code}', code);
 
     const modelId = this.config.defaultModel ?? 'anthropic/claude-sonnet-4-6';
 
@@ -96,8 +82,8 @@ export class AnalyzerAgent extends Agent {
       const response = await modelRegistry.chat(
         modelId,
         [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt.replaceAll('{code}', code).replaceAll('{focus}', focus ?? '') },
+          { role: 'system', content: ANALYZER_SYSTEM_PROMPT },
+          { role: 'user', content: userPrompt },
         ]
       );
 

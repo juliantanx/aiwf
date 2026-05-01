@@ -1,5 +1,5 @@
 import { join } from 'path';
-import { readdir, stat } from 'fs/promises';
+import { readdir, stat, writeFile } from 'fs/promises';
 import type { AgentConfig } from '../core/types.js';
 import { fileExists, readYaml, ensureDir } from '../utils/file.js';
 import { parseYaml } from '../core/parser.js';
@@ -8,9 +8,8 @@ import { Agent } from '../agents/base.js';
 import type { AgentInput, AgentOutput, ExecutionContext } from '../core/types.js';
 import { modelRegistry } from '../models/registry.js';
 import { logger } from '../utils/logger.js';
-
-const AIWF_DIR = '.ai-workflows';
-const AGENTS_DIR = 'agents';
+import yaml from 'js-yaml';
+import { AIWF_DIR, AGENTS_DIR } from './constants.js';
 
 export async function getAgentsPath(projectRoot: string): Promise<string> {
   return join(projectRoot, AIWF_DIR, AGENTS_DIR);
@@ -188,7 +187,6 @@ export async function saveCustomAgent(projectRoot: string, config: AgentConfig &
   const agentsPath = await getAgentsPath(projectRoot);
   await ensureDir(agentsPath);
 
-  const yaml = await import('js-yaml');
   const filePath = join(agentsPath, `${config.id}.yaml`);
 
   const agentDef = {
@@ -207,7 +205,7 @@ export async function saveCustomAgent(projectRoot: string, config: AgentConfig &
   };
 
   const content = yaml.dump(agentDef);
-  await import('fs/promises').then(fs => fs.writeFile(filePath, content, 'utf-8'));
+  await writeFile(filePath, content, 'utf-8');
 
   return filePath;
 }

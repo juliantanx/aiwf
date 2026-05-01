@@ -9,11 +9,11 @@ const DOC_WRITER_SYSTEM_PROMPT = `You are an expert technical writer. Your role 
 - Structure documentation logically
 - Cover all important aspects (purpose, usage, parameters, examples)`;
 
-const DOC_WRITER_USER_PROMPT = `Generate documentation for the following code:
+const DOC_WRITER_USER_PROMPT_TEMPLATE = `Generate documentation for the following code:
 
 {code}
 
-${InputHasKey('format', 'Format: {format}')}
+{format_section}
 
 Provide your response in the following JSON format:
 {
@@ -22,10 +22,6 @@ Provide your response in the following JSON format:
   "sections": ["Overview", "Usage", "Parameters", "Examples", "Notes"],
   "examples": ["Example code snippets if applicable"]
 }`;
-
-function InputHasKey(key: string, template: string): string {
-  return template;
-}
 
 export class DocWriterAgent extends Agent {
   readonly config: AgentConfig = {
@@ -60,21 +56,11 @@ export class DocWriterAgent extends Agent {
       return this.formatError('Input "code" is required and must be a string');
     }
 
-    let userPrompt = DOC_WRITER_USER_PROMPT
-      .replace('{code}', code)
-      .replace('{format}', format);
+    const formatSection = `Format: ${format}`;
 
-    if (format) {
-      userPrompt = userPrompt.replace(
-        '${InputHasKey(\'format\', \'Format: {format}\')}',
-        `Format: ${format}`
-      );
-    } else {
-      userPrompt = userPrompt.replace(
-        '${InputHasKey(\'format\', \'Format: {format}\')}',
-        ''
-      );
-    }
+    const userPrompt = DOC_WRITER_USER_PROMPT_TEMPLATE
+      .replace('{code}', code)
+      .replace('{format_section}', formatSection);
 
     const modelId = this.config.defaultModel ?? 'anthropic/claude-sonnet-4-6';
 

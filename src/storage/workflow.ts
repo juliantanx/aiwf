@@ -1,11 +1,11 @@
 import { join } from 'path';
 import { readdir, stat } from 'fs/promises';
+import { writeFile, unlink } from 'fs/promises';
 import type { Workflow } from '../core/types.js';
 import { fileExists, readYaml, ensureDir } from '../utils/file.js';
 import { parseWorkflowYaml } from '../core/parser.js';
-
-const AIWF_DIR = '.ai-workflows';
-const WORKFLOWS_DIR = 'workflows';
+import yaml from 'js-yaml';
+import { AIWF_DIR, WORKFLOWS_DIR } from './constants.js';
 
 export async function getWorkflowsPath(projectRoot: string): Promise<string> {
   return join(projectRoot, AIWF_DIR, WORKFLOWS_DIR);
@@ -65,11 +65,10 @@ export async function saveWorkflow(projectRoot: string, workflow: Workflow): Pro
   const workflowsPath = await getWorkflowsPath(projectRoot);
   await ensureDir(workflowsPath);
 
-  const yaml = await import('js-yaml');
   const filePath = join(workflowsPath, `${workflow.name}.yaml`);
   const content = yaml.dump(workflow);
 
-  await import('fs/promises').then(fs => fs.writeFile(filePath, content, 'utf-8'));
+  await writeFile(filePath, content, 'utf-8');
 
   return filePath;
 }
@@ -82,7 +81,7 @@ export async function deleteWorkflow(projectRoot: string, name: string): Promise
     return false;
   }
 
-  await import('fs/promises').then(fs => fs.unlink(filePath));
+  await unlink(filePath);
   return true;
 }
 

@@ -8,11 +8,11 @@ const SUMMARIZER_SYSTEM_PROMPT = `You are an expert at summarizing content. Your
 - Structure summaries logically
 - Adjust detail level based on requirements`;
 
-const SUMMARIZER_USER_PROMPT = `Summarize the following content:
+const SUMMARIZER_USER_PROMPT_TEMPLATE = `Summarize the following content:
 
 {content}
 
-${InputHasKey('max_length', 'Maximum length: {max_length} words')}
+{max_length_section}
 
 Provide your response in the following JSON format:
 {
@@ -20,10 +20,6 @@ Provide your response in the following JSON format:
   "key_points": ["Main point 1", "Main point 2"],
   "word_count": "Number of words in summary"
 }`;
-
-function InputHasKey(key: string, template: string): string {
-  return template;
-}
 
 export class SummarizerAgent extends Agent {
   readonly config: AgentConfig = {
@@ -57,19 +53,11 @@ export class SummarizerAgent extends Agent {
       return this.formatError('Input "content" is required and must be a string');
     }
 
-    let userPrompt = SUMMARIZER_USER_PROMPT.replace('{content}', content);
+    const maxLengthSection = maxLength ? `Maximum length: ${maxLength} words` : '';
 
-    if (maxLength) {
-      userPrompt = userPrompt.replace(
-        '${InputHasKey(\'max_length\', \'Maximum length: {max_length} words\')}',
-        `Maximum length: ${maxLength} words`
-      );
-    } else {
-      userPrompt = userPrompt.replace(
-        '${InputHasKey(\'max_length\', \'Maximum length: {max_length} words\')}',
-        ''
-      );
-    }
+    const userPrompt = SUMMARIZER_USER_PROMPT_TEMPLATE
+      .replace('{content}', content)
+      .replace('{max_length_section}', maxLengthSection);
 
     const modelId = this.config.defaultModel ?? 'anthropic/claude-sonnet-4-6';
 

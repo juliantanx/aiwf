@@ -11,12 +11,12 @@ const CODER_SYSTEM_PROMPT = `You are an expert software developer. Your role is 
 
 Always produce working, complete code unless asked otherwise.`;
 
-const CODER_USER_PROMPT = `Generate code based on the following request:
+const CODER_USER_PROMPT_TEMPLATE = `Generate code based on the following request:
 
 {prompt}
 
-${InputHasKey('language', 'Language: {language}')}
-${InputHasKey('context', '\n\nContext/Requirements:\n{context}')}
+{language_section}
+{context_section}
 
 Provide your response in the following JSON format:
 {
@@ -25,10 +25,6 @@ Provide your response in the following JSON format:
   "dependencies": ["Required dependencies if any"],
   "usage_example": "Example of how to use this code"
 }`;
-
-function InputHasKey(key: string, template: string): string {
-  return template;
-}
 
 export class CoderAgent extends Agent {
   readonly config: AgentConfig = {
@@ -65,33 +61,13 @@ export class CoderAgent extends Agent {
       return this.formatError('Input "prompt" is required and must be a string');
     }
 
-    let userPrompt = CODER_USER_PROMPT
+    const languageSection = language ? `Language: ${language}` : '';
+    const contextSection = ctx ? `\n\nContext/Requirements:\n${ctx}` : '';
+
+    const userPrompt = CODER_USER_PROMPT_TEMPLATE
       .replace('{prompt}', prompt)
-      .replace('{language}', language ?? 'appropriate language');
-
-    if (ctx) {
-      userPrompt = userPrompt.replace(
-        '${InputHasKey(\'context\', \'\\n\\nContext/Requirements:\\n{context}\')}',
-        `\n\nContext/Requirements:\n${ctx}`
-      );
-    } else {
-      userPrompt = userPrompt.replace(
-        '${InputHasKey(\'context\', \'\\n\\nContext/Requirements:\\n{context}\')}',
-        ''
-      );
-    }
-
-    if (language) {
-      userPrompt = userPrompt.replace(
-        '${InputHasKey(\'language\', \'Language: {language}\')}',
-        `Language: ${language}`
-      );
-    } else {
-      userPrompt = userPrompt.replace(
-        '${InputHasKey(\'language\', \'Language: {language}\')}',
-        ''
-      );
-    }
+      .replace('{language_section}', languageSection)
+      .replace('{context_section}', contextSection);
 
     const modelId = this.config.defaultModel ?? 'anthropic/claude-sonnet-4-6';
 

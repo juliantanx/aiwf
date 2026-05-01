@@ -130,7 +130,7 @@ export function registerListCommand(program: Command): void {
     .command('list <type>')
     .description('List workflows, agents, runs, or models')
     .option('-w, --workflow <name>', 'Filter runs by workflow')
-    .option('-n, --last <n>', 'Number of items to show', parseInt)
+    .option('-n, --last <n>', 'Number of items to show', (s: string) => parseInt(s, 10))
     .option('-p, --provider <provider>', 'Filter models by provider')
     .action(listCommand);
 }

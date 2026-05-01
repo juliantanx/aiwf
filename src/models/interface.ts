@@ -1,19 +1,12 @@
-import type { ModelAdapter, ModelCapabilities, ChatMessage, ModelConfig, ModelResponse } from '../core/types.js';
+import type { ModelAdapter, ModelCapabilities, ChatMessage, ModelConfig, ModelResponse, CreateModelOptions } from '../core/types.js';
 
-export type { ModelAdapter, ChatMessage, ModelConfig, ModelResponse };
+export type { ModelAdapter, ChatMessage, ModelConfig, ModelResponse, CreateModelOptions };
 
 export const DEFAULT_MODEL_CAPABILITIES: ModelCapabilities = {
   streaming: true,
   functionCalling: false,
   vision: false,
 };
-
-export interface CreateModelOptions {
-  apiKey?: string;
-  endpoint?: string;
-  organization?: string;
-  headers?: Record<string, string>;
-}
 
 export function parseModelIdentifier(modelId: string): {
   provider: string;
