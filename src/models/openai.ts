@@ -4,11 +4,17 @@ import { DEFAULT_MODEL_CAPABILITIES, parseModelIdentifier } from './interface.js
 
 export function createOpenAIAdapter(options: CreateModelOptions = {}): ModelAdapter {
   const { apiKey, organization } = options;
+  let client: OpenAI | null = null;
 
-  const client = new OpenAI({
-    apiKey: apiKey ?? process.env['OPENAI_API_KEY'],
-    organization,
-  });
+  const getClient = (): OpenAI => {
+    if (!client) {
+      client = new OpenAI({
+        apiKey: apiKey ?? process.env['OPENAI_API_KEY'],
+        organization,
+      });
+    }
+    return client;
+  };
 
   return {
     id: 'openai',
@@ -29,7 +35,7 @@ export function createOpenAIAdapter(options: CreateModelOptions = {}): ModelAdap
 
       const startTime = Date.now();
 
-      const response = await client.chat.completions.create({
+      const response = await getClient().chat.completions.create({
         model: modelName,
         messages: messages.map(m => ({
           role: m.role,
@@ -67,7 +73,7 @@ export function createOpenAIAdapter(options: CreateModelOptions = {}): ModelAdap
       const parsed = parseModelIdentifier(model);
       const modelName = parsed.model || 'gpt-4o';
 
-      const stream = await client.chat.completions.create({
+      const stream = await getClient().chat.completions.create({
         model: modelName,
         messages: messages.map(m => ({
           role: m.role,

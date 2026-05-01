@@ -4,10 +4,16 @@ import { DEFAULT_MODEL_CAPABILITIES, parseModelIdentifier } from './interface.js
 
 export function createAnthropicAdapter(options: CreateModelOptions = {}): ModelAdapter {
   const { apiKey } = options;
+  let client: Anthropic | null = null;
 
-  const client = new Anthropic({
-    apiKey: apiKey ?? process.env['ANTHROPIC_API_KEY'],
-  });
+  const getClient = (): Anthropic => {
+    if (!client) {
+      client = new Anthropic({
+        apiKey: apiKey ?? process.env['ANTHROPIC_API_KEY'],
+      });
+    }
+    return client;
+  };
 
   return {
     id: 'anthropic',
@@ -32,7 +38,7 @@ export function createAnthropicAdapter(options: CreateModelOptions = {}): ModelA
 
       const startTime = Date.now();
 
-      const response = await client.messages.create({
+      const response = await getClient().messages.create({
         model: modelName,
         max_tokens: maxTokens ?? 4096,
         system: systemMessage?.content,
@@ -77,7 +83,7 @@ export function createAnthropicAdapter(options: CreateModelOptions = {}): ModelA
       const systemMessage = messages.find(m => m.role === 'system');
       const conversationMessages = messages.filter(m => m.role !== 'system');
 
-      const stream = client.messages.stream({
+      const stream = getClient().messages.stream({
         model: modelName,
         max_tokens: maxTokens ?? 4096,
         system: systemMessage?.content,

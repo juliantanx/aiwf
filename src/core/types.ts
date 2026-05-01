@@ -119,7 +119,7 @@ export interface ChatMessage {
 }
 
 export interface ModelConfig {
-  model: string;
+  model?: string;
   temperature?: number;
   maxTokens?: number;
   topP?: number;

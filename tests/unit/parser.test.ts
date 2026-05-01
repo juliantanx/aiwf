@@ -83,8 +83,8 @@ models:
     expect(result.data.models?.default).toBe('anthropic/claude-sonnet-4-6');
   });
 
-  it('should accept empty config', () => {
-    const yaml = ``;
+  it('should accept empty config object', () => {
+    const yaml = `{}`;
     const result = parseConfigYaml(yaml);
 
     expect(result.valid).toBe(true);

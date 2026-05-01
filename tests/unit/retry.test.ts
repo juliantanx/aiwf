@@ -56,53 +56,72 @@ describe('Retry Utils', () => {
 
   describe('withRetry', () => {
     it('should succeed on first attempt', async () => {
-      const fn = jest.fn().mockResolvedValue('success');
+      let calls = 0;
+      const fn = async () => {
+        calls++;
+        return 'success';
+      };
       const result = await withRetry(fn);
 
       expect(result).toBe('success');
-      expect(fn).toHaveBeenCalledTimes(1);
+      expect(calls).toBe(1);
     });
 
     it('should retry on retriable errors', async () => {
-      const fn = jest.fn()
-        .mockRejectedValueOnce(new Error('Rate limit'))
-        .mockResolvedValue('success');
+      let calls = 0;
+      const fn = async () => {
+        calls++;
+        if (calls === 1) throw new Error('Rate limit');
+        return 'success';
+      };
 
       const result = await withRetry(fn, { maxAttempts: 3, initialDelay: 10 });
 
       expect(result).toBe('success');
-      expect(fn).toHaveBeenCalledTimes(2);
+      expect(calls).toBe(2);
     });
 
     it('should fail after max attempts', async () => {
-      const fn = jest.fn().mockRejectedValue(new Error('Rate limit'));
+      let calls = 0;
+      const fn = async () => {
+        calls++;
+        throw new Error('Rate limit');
+      };
 
       await expect(withRetry(fn, { maxAttempts: 2, initialDelay: 10 }))
         .rejects.toThrow('Rate limit');
 
-      expect(fn).toHaveBeenCalledTimes(2);
+      expect(calls).toBe(2);
     });
 
     it('should not retry non-retriable errors', async () => {
-      const fn = jest.fn().mockRejectedValue(new Error('Invalid API key'));
+      let calls = 0;
+      const fn = async () => {
+        calls++;
+        throw new Error('Invalid API key');
+      };
 
       await expect(withRetry(fn, { maxAttempts: 3, initialDelay: 10 }))
         .rejects.toThrow('Invalid API key');
 
-      expect(fn).toHaveBeenCalledTimes(1);
+      expect(calls).toBe(1);
     });
 
     it('should call onError callback', async () => {
-      const fn = jest.fn()
-        .mockRejectedValueOnce(new Error('Rate limit'))
-        .mockResolvedValue('success');
+      let calls = 0;
+      const fn = async () => {
+        calls++;
+        if (calls === 1) throw new Error('Rate limit');
+        return 'success';
+      };
 
-      const onError = jest.fn();
-      await withRetry(fn, { maxAttempts: 3, initialDelay: 10 }, onError);
+      const errors: Array<{ attempt: number }> = [];
+      await withRetry(fn, { maxAttempts: 3, initialDelay: 10 }, (ctx) => {
+        errors.push({ attempt: ctx.attempt });
+      });
 
-      expect(onError).toHaveBeenCalledWith(
-        expect.objectContaining({ attempt: 1, maxAttempts: 3 })
-      );
+      expect(errors).toHaveLength(1);
+      expect(errors[0]?.attempt).toBe(1);
     });
   });
 

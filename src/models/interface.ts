@@ -28,12 +28,22 @@ export function parseModelIdentifier(modelId: string): {
 
   const provider = parts[0]!;
   const modelParts = (parts[1] ?? '').split(':');
+  const variant = modelParts[1];
 
-  return {
+  const result: {
+    provider: string;
+    model: string;
+    variant?: string;
+  } = {
     provider,
     model: modelParts[0] ?? '',
-    variant: modelParts[1],
   };
+
+  if (variant) {
+    result.variant = variant;
+  }
+
+  return result;
 }
 
 export function getModelPricing(modelId: string): {
