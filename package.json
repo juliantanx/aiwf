@@ -10,7 +10,7 @@
     "agent",
     "automation"
   ],
-  "author": "",
+  "author": "juliantanx",
   "license": "MIT",
   "type": "module",
   "bin": {
@@ -63,10 +63,10 @@
   },
   "repository": {
     "type": "git",
-    "url": ""
+    "url": "git+https://github.com/juliantanx/aiwf.git"
   },
   "bugs": {
-    "url": ""
+    "url": "https://github.com/juliantanx/aiwf/issues"
   },
-  "homepage": ""
+  "homepage": "https://github.com/juliantanx/aiwf#readme"
 }
