@@ -99,7 +99,7 @@ export async function saveRunOutput(
   workflowName: string,
   runId: string,
   output: unknown,
-  format: 'json' | 'markdown' = 'json'
+  format: 'json' | 'markdown' | 'text' = 'json'
 ): Promise<void> {
   const runDir = join(projectRoot, AIWF_DIR, RUNS_DIR, workflowName, runId);
   await ensureDir(runDir);

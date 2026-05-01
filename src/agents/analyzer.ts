@@ -69,7 +69,7 @@ export class AnalyzerAgent extends Agent {
 
   async execute(input: AgentInput, context: ExecutionContext): Promise<AgentOutput> {
     const code = input['code'];
-    const focus = input['focus'];
+    const focus = typeof input['focus'] === 'string' ? input['focus'] : '';
 
     if (!code || typeof code !== 'string') {
       return this.formatError('Input "code" is required and must be a string');
@@ -97,7 +97,7 @@ export class AnalyzerAgent extends Agent {
         modelId,
         [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt.replace('{code}', code).replace('{focus}', focus ?? '') },
+          { role: 'user', content: userPrompt.replaceAll('{code}', code).replaceAll('{focus}', focus ?? '') },
         ]
       );
 

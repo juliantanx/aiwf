@@ -41,10 +41,10 @@ class Logger {
     }
   }
 
-  warn(message: string): void {
+  warn(message: string, error?: unknown): void {
     if (this.level !== 'silent') {
       this.stopSpinner();
-      console.log(chalk.yellow('⚠'), message);
+      console.log(chalk.yellow('⚠'), message, error ?? '');
     }
   }
 

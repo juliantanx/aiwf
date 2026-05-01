@@ -39,7 +39,7 @@ export function createOllamaAdapter(options: CreateModelOptions = {}): ModelAdap
           temperature,
           num_predict: maxTokens,
           top_p: topP,
-          stop: stopSequences?.[0],
+          stop: stopSequences,
         },
       });
 
@@ -75,7 +75,7 @@ export function createOllamaAdapter(options: CreateModelOptions = {}): ModelAdap
           temperature,
           num_predict: maxTokens,
           top_p: topP,
-          stop: stopSequences?.[0],
+          stop: stopSequences,
         },
       });
 

@@ -142,7 +142,7 @@ export class WorkflowRunner {
         }
 
         // Resolve inputs
-        const resolvedInput = this.resolver.resolve(step.input);
+        const resolvedInput = this.resolver.resolve(step.input) as Record<string, unknown>;
 
         // Execute step with retry and fallback
         const output = await this.executeStepWithFallback(

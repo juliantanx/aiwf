@@ -133,6 +133,12 @@ async function addModel(projectRoot: string, options: ModelsOptions): Promise<vo
     endpoint = answer.endpoint;
   }
 
+  // Ensure provider is defined
+  if (!provider) {
+    logger.error('Provider is required');
+    process.exit(1);
+  }
+
   // Update config
   if (!config.models) {
     config.models = { providers: {} };

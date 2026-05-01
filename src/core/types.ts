@@ -4,10 +4,13 @@
 // Workflow Types
 // ============================================================================
 
-export interface WorkflowTrigger {
-  type: 'manual' | 'pull_request' | 'push' | 'schedule' | 'webhook';
-  config?: Record<string, unknown>;
-}
+export type WorkflowTrigger =
+  | 'manual'
+  | 'pull_request'
+  | 'push'
+  | 'schedule'
+  | 'webhook'
+  | { type: 'manual' | 'pull_request' | 'push' | 'schedule' | 'webhook'; config?: Record<string, unknown> };
 
 export interface InputDefinition {
   type: 'string' | 'number' | 'boolean' | 'object' | 'array';
@@ -151,6 +154,13 @@ export interface ModelAdapter {
 }
 
 export interface ProviderConfig {
+  apiKey?: string;
+  endpoint?: string;
+  organization?: string;
+  headers?: Record<string, string>;
+}
+
+export interface CreateModelOptions {
   apiKey?: string;
   endpoint?: string;
   organization?: string;

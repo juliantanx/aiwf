@@ -138,7 +138,8 @@ export async function showRunCommand(runId: string, options: RunsOptions = {}): 
   }
 
   // Try to show output
-  const outputPath = join(getRunOutputPath(projectRoot, run.workflow, run.id), 'output.md');
+  const outputDir = await getRunOutputPath(projectRoot, run.workflow, run.id);
+  const outputPath = join(outputDir, 'output.md');
   try {
     const output = await readFile(outputPath, 'utf-8');
     logger.newline();

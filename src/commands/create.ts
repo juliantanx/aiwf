@@ -154,6 +154,12 @@ async function createWorkflow(projectRoot: string, name?: string, options: Creat
     name = answer.name;
   }
 
+  // Ensure name is defined
+  if (!name) {
+    logger.error('Name is required');
+    process.exit(1);
+  }
+
   // Check if exists
   if (await workflowExists(projectRoot, name)) {
     logger.error(`Workflow already exists: ${name}`);
@@ -247,6 +253,12 @@ async function createAgent(projectRoot: string, name?: string, options: CreateOp
     name = answer.name;
   }
 
+  // Ensure name is defined
+  if (!name) {
+    logger.error('Agent ID is required');
+    process.exit(1);
+  }
+
   // Get agent details
   const answers = await inquirer.prompt([
     {
@@ -305,8 +317,8 @@ async function createAgent(projectRoot: string, name?: string, options: CreateOp
 
   const config: AgentConfig & { extends?: string } = {
     id: name,
-    name: answers.agentName,
-    description: answers.description,
+    name: answers.agentName as string,
+    description: answers.description as string,
     extends: extendsAgent,
     inputSchema: {},
     outputSchema: {},

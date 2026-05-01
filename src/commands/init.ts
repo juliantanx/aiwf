@@ -78,7 +78,7 @@ export async function initCommand(options: InitOptions = {}): Promise<void> {
   // Create sample workflow
   logger.startSpinner('Creating sample workflow...');
 
-  const sampleWorkflow = {
+  const sampleWorkflow: import('../core/types.js').Workflow = {
     apiVersion: 'aiwf/v1',
     kind: 'Workflow',
     name: 'hello-world',
