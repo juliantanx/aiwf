@@ -50,7 +50,8 @@ async function listModels(projectRoot: string): Promise<void> {
     for (const [provider, providerConfig] of Object.entries(config.models.providers)) {
       logger.raw(`  ${provider}:`);
       if (providerConfig.apiKey) {
-        logger.raw(`    API Key: ${providerConfig.apiKey.slice(0, 8)}...`);
+        const keyLen = providerConfig.apiKey.length;
+        logger.raw(`    API Key: ${'*'.repeat(keyLen - 4)}${providerConfig.apiKey.slice(-4)}`);
       }
       if (providerConfig.endpoint) {
         logger.raw(`    Endpoint: ${providerConfig.endpoint}`);

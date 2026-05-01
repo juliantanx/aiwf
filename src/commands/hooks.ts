@@ -13,6 +13,11 @@ interface HooksOptions {
   hook?: string;
 }
 
+const VALID_HOOKS = [
+  'pre-commit', 'pre-push', 'post-commit', 'commit-msg',
+  'post-merge', 'pre-rebase', 'post-checkout', 'post-receive',
+];
+
 const HOOK_SCRIPT = `#!/bin/sh
 # AI Workflow CLI Git Hook
 aiwf hooks exec $0
@@ -62,6 +67,11 @@ async function installHooks(projectRoot: string, hookName?: string): Promise<voi
   }
 
   for (const hook of hooksToInstall) {
+    if (!VALID_HOOKS.includes(hook)) {
+      logger.warn(`Skipping invalid hook name: ${hook}`);
+      continue;
+    }
+
     logger.startSpinner(`Installing hook: ${hook}`);
 
     try {
@@ -144,6 +154,13 @@ async function execHook(projectRoot: string, hookName?: string): Promise<void> {
 
   // Extract hook name from path if full path provided
   const hook = hookName.includes('/') ? hookName.split('/').pop() ?? hookName : hookName;
+
+  // Validate hook name against whitelist
+  if (!VALID_HOOKS.includes(hook)) {
+    logger.error(`Invalid hook name: ${hook}`);
+    logger.raw(`Valid hooks: ${VALID_HOOKS.join(', ')}`);
+    process.exit(1);
+  }
 
   const config = await loadConfig(projectRoot);
   modelRegistry.setConfig(config);

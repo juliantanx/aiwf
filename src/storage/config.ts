@@ -1,26 +1,33 @@
 import { cosmiconfig } from 'cosmiconfig';
 import type { AiwfConfig } from '../core/types.js';
-import { fileExists, readYaml, writeJson, ensureDir } from '../utils/file.js';
+import { fileExists, readYaml, ensureDir } from '../utils/file.js';
 import { parseConfigYaml } from '../core/parser.js';
-import { join } from 'path';
+import { join, parse, dirname } from 'path';
+import { writeFile } from 'fs/promises';
+import yaml from 'js-yaml';
 
 const CONFIG_MODULE_NAME = 'aiwf';
 const AIWF_DIR = '.ai-workflows';
 
 export async function findProjectRoot(startPath: string = process.cwd()): Promise<string | null> {
-  const fs = await import('fs/promises');
-
   let currentPath = startPath;
+  const root = parse(currentPath).root;
 
-  while (currentPath !== '/' && currentPath !== '') {
+  while (currentPath !== root && currentPath !== '/' && currentPath !== '') {
     const aiwfPath = join(currentPath, AIWF_DIR);
     if (await fileExists(aiwfPath)) {
       return currentPath;
     }
 
-    const parentPath = join(currentPath, '..');
+    const parentPath = dirname(currentPath);
     if (parentPath === currentPath) break;
     currentPath = parentPath;
+  }
+
+  // Check root directory as well
+  const aiwfPath = join(root, AIWF_DIR);
+  if (await fileExists(aiwfPath)) {
+    return root;
   }
 
   return null;
@@ -54,11 +61,10 @@ export async function loadConfig(projectRoot: string): Promise<AiwfConfig> {
 
 export async function saveConfig(projectRoot: string, config: AiwfConfig): Promise<void> {
   const configPath = join(projectRoot, AIWF_DIR, 'config.yaml');
-  const yaml = await import('js-yaml');
 
   await ensureDir(join(projectRoot, AIWF_DIR));
   const content = yaml.dump(config);
-  await import('fs/promises').then(fs => fs.writeFile(configPath, content, 'utf-8'));
+  await writeFile(configPath, content, 'utf-8');
 }
 
 export async function configExists(projectRoot: string): Promise<boolean> {

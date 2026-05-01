@@ -7,6 +7,7 @@ import { agentRegistry } from '../agents/registry.js';
 import { Agent } from '../agents/base.js';
 import type { AgentInput, AgentOutput, ExecutionContext } from '../core/types.js';
 import { modelRegistry } from '../models/registry.js';
+import { logger } from '../utils/logger.js';
 
 const AIWF_DIR = '.ai-workflows';
 const AGENTS_DIR = 'agents';
@@ -44,8 +45,8 @@ export async function listCustomAgents(projectRoot: string): Promise<Array<{
           config: config as AgentConfig,
         });
       }
-    } catch {
-      // Skip invalid agent files
+    } catch (error) {
+      logger.warn(`Skipped invalid agent file: ${entry}`);
     }
   }
 

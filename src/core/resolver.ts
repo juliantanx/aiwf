@@ -1,4 +1,5 @@
 import type { ExecutionContext, GitContext } from './types.js';
+import { randomUUID } from 'crypto';
 
 // Variable syntax: ${{ source.path.to.value }}
 const VARIABLE_PATTERN = /\$\{\{\s*([^}]+)\s*\}\}/g;
@@ -132,11 +133,5 @@ export function createResolver(context: Partial<ResolverContext> = {}): Variable
 }
 
 export function generateRunId(): string {
-  const date = new Date();
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const seq = String(Math.floor(Math.random() * 999)).padStart(3, '0');
-
-  return `${year}-${month}-${day}-${seq}`;
+  return randomUUID().slice(0, 12);
 }

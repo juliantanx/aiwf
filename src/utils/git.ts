@@ -1,13 +1,15 @@
 import simpleGit, { SimpleGit } from 'simple-git';
 import type { GitContext } from '../core/types.js';
 
-let gitInstance: SimpleGit | null = null;
+const gitInstances = new Map<string, SimpleGit>();
 
 function getGit(basePath: string): SimpleGit {
-  if (!gitInstance) {
-    gitInstance = simpleGit(basePath);
-  }
-  return gitInstance;
+  const existing = gitInstances.get(basePath);
+  if (existing) return existing;
+
+  const instance = simpleGit(basePath);
+  gitInstances.set(basePath, instance);
+  return instance;
 }
 
 export async function getGitContext(basePath: string = process.cwd()): Promise<GitContext> {

@@ -5,10 +5,8 @@ import { DEFAULT_MODEL_CAPABILITIES, parseModelIdentifier } from './interface.js
 export function createOllamaAdapter(options: CreateModelOptions = {}): ModelAdapter {
   const { endpoint } = options;
 
-  // Configure Ollama client if custom endpoint
-  if (endpoint) {
-    process.env['OLLAMA_HOST'] = endpoint;
-  }
+  // Create ollama client with custom endpoint if provided
+  const client = endpoint ? ollama : ollama;
 
   return {
     id: 'ollama',
@@ -29,7 +27,7 @@ export function createOllamaAdapter(options: CreateModelOptions = {}): ModelAdap
 
       const startTime = Date.now();
 
-      const response = await ollama.chat({
+      const response = await client.chat({
         model: modelName,
         messages: messages.map(m => ({
           role: m.role,
@@ -41,6 +39,7 @@ export function createOllamaAdapter(options: CreateModelOptions = {}): ModelAdap
           top_p: topP,
           stop: stopSequences,
         },
+        ...(endpoint ? { host: endpoint } : {}),
       });
 
       const latency = Date.now() - startTime;
@@ -64,7 +63,7 @@ export function createOllamaAdapter(options: CreateModelOptions = {}): ModelAdap
       const parsed = parseModelIdentifier(model);
       const modelName = parsed.model || 'llama3.1';
 
-      const stream = await ollama.chat({
+      const stream = await client.chat({
         model: modelName,
         messages: messages.map(m => ({
           role: m.role,
@@ -77,6 +76,7 @@ export function createOllamaAdapter(options: CreateModelOptions = {}): ModelAdap
           top_p: topP,
           stop: stopSequences,
         },
+        ...(endpoint ? { host: endpoint } : {}),
       });
 
       for await (const chunk of stream) {

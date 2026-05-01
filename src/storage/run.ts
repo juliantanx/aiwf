@@ -1,7 +1,8 @@
 import { join } from 'path';
-import { readdir, stat, mkdir } from 'fs/promises';
+import { readdir, stat, mkdir, writeFile, rm } from 'fs/promises';
 import type { RunRecord } from '../core/types.js';
 import { fileExists, readJson, writeJson, ensureDir } from '../utils/file.js';
+import { logger } from '../utils/logger.js';
 
 const AIWF_DIR = '.ai-workflows';
 const RUNS_DIR = 'runs';
@@ -104,13 +105,15 @@ export async function saveRunOutput(
   const runDir = join(projectRoot, AIWF_DIR, RUNS_DIR, workflowName, runId);
   await ensureDir(runDir);
 
-  if (format === 'json') {
-    await writeJson(join(runDir, 'output.json'), output);
-  } else {
-    const content = typeof output === 'string' ? output : JSON.stringify(output, null, 2);
-    await import('fs/promises').then(fs =>
-      fs.writeFile(join(runDir, 'output.md'), content, 'utf-8')
-    );
+  try {
+    if (format === 'json') {
+      await writeJson(join(runDir, 'output.json'), output);
+    } else {
+      const content = typeof output === 'string' ? output : JSON.stringify(output, null, 2);
+      await writeFile(join(runDir, 'output.md'), content, 'utf-8');
+    }
+  } catch (error) {
+    logger.warn('Failed to save run output:', error);
   }
 }
 
@@ -129,6 +132,11 @@ export async function deleteRun(projectRoot: string, workflowName: string, runId
     return false;
   }
 
-  await import('fs/promises').then(fs => fs.rm(runDir, { recursive: true }));
-  return true;
+  try {
+    await rm(runDir, { recursive: true });
+    return true;
+  } catch (error) {
+    logger.warn(`Failed to delete run: ${runId}`, error);
+    return false;
+  }
 }
