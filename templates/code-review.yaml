@@ -1,0 +1,49 @@
+apiVersion: aiwf/v1
+kind: Workflow
+name: code-review
+version: 1.0.0
+description: AI-powered code review workflow
+
+triggers:
+  - manual
+  - pull_request:
+      branches: [main, develop]
+
+inputs:
+  diff:
+    type: string
+    description: Code diff to review
+    required: true
+  focus:
+    type: string
+    description: Focus areas (security, performance, style)
+    default: ""
+
+env:
+  REVIEW_DEPTH: thorough
+
+steps:
+  - id: analyze
+    agent: analyzer
+    input:
+      code: ${{ inputs.diff }}
+      focus: ${{ inputs.focus }}
+
+  - id: security-check
+    agent: reviewer
+    condition: ${{ steps.analyze.output.has_security_concern }}
+    input:
+      code: ${{ inputs.diff }}
+      type: security
+
+  - id: review
+    agent: reviewer
+    input:
+      code: ${{ inputs.diff }}
+      analysis: ${{ steps.analyze.output }}
+      security: ${{ steps.security-check.output }}
+
+output:
+  format: markdown
+  summary: ${{ steps.review.output.summary }}
+  comments: ${{ steps.review.output.comments }}

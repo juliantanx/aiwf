@@ -1,0 +1,29 @@
+apiVersion: aiwf/v1
+kind: Workflow
+name: doc-gen
+version: 1.0.0
+description: Generate documentation for code
+
+triggers:
+  - manual
+
+inputs:
+  code:
+    type: string
+    description: Code to document
+    required: true
+  format:
+    type: string
+    description: Output format (markdown, html, plain)
+    default: markdown
+
+steps:
+  - id: document
+    agent: doc-writer
+    input:
+      code: ${{ inputs.code }}
+      format: ${{ inputs.format }}
+
+output:
+  format: markdown
+  documentation: ${{ steps.document.output.documentation }}

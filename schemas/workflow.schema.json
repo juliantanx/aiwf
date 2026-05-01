@@ -1,0 +1,183 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "workflow.schema.json",
+  "title": "AI Workflow Definition",
+  "description": "Schema for AI Workflow CLI workflow definition",
+  "type": "object",
+  "required": ["apiVersion", "kind", "name", "version", "steps"],
+  "properties": {
+    "apiVersion": {
+      "type": "string",
+      "const": "aiwf/v1",
+      "description": "API version"
+    },
+    "kind": {
+      "type": "string",
+      "const": "Workflow",
+      "description": "Resource kind"
+    },
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z0-9-]+$",
+      "description": "Workflow name (lowercase, numbers, hyphens)"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Semantic version"
+    },
+    "description": {
+      "type": "string",
+      "description": "Workflow description"
+    },
+    "author": {
+      "type": "string",
+      "description": "Workflow author"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Tags for categorization"
+    },
+    "triggers": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "type": "string",
+            "enum": ["manual"]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "pull_request": {
+                "type": "object",
+                "properties": {
+                  "branches": {
+                    "type": "array",
+                    "items": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "properties": {
+              "push": {
+                "type": "object",
+                "properties": {
+                  "branches": {
+                    "type": "array",
+                    "items": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      "description": "Trigger conditions"
+    },
+    "inputs": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["type"],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["string", "number", "boolean", "object", "array"]
+          },
+          "description": { "type": "string" },
+          "required": { "type": "boolean" },
+          "default": {}
+        }
+      },
+      "description": "Input parameters definition"
+    },
+    "env": {
+      "type": "object",
+      "additionalProperties": { "type": "string" },
+      "description": "Environment variables"
+    },
+    "model": {
+      "type": "string",
+      "description": "Default model for all steps"
+    },
+    "steps": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "agent"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9_]+$",
+            "description": "Step identifier"
+          },
+          "agent": {
+            "type": "string",
+            "description": "Agent to use"
+          },
+          "model": {
+            "type": "string",
+            "description": "Model to use (overrides default)"
+          },
+          "input": {
+            "type": "object",
+            "description": "Input for the agent"
+          },
+          "condition": {
+            "type": "string",
+            "description": "Condition to execute this step"
+          },
+          "retry": {
+            "type": "object",
+            "properties": {
+              "maxAttempts": { "type": "integer", "minimum": 1 },
+              "backoff": { "type": "string", "enum": ["fixed", "linear", "exponential"] },
+              "initialDelay": { "type": "integer", "minimum": 0 },
+              "maxDelay": { "type": "integer", "minimum": 0 }
+            }
+          },
+          "continueOnError": {
+            "type": "boolean",
+            "description": "Continue workflow if this step fails"
+          },
+          "timeout": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Timeout in milliseconds"
+          }
+        }
+      },
+      "description": "Workflow steps"
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "format": {
+          "type": "string",
+          "enum": ["json", "markdown", "text"]
+        },
+        "path": { "type": "string" }
+      },
+      "description": "Output configuration"
+    },
+    "retry": {
+      "type": "object",
+      "properties": {
+        "maxAttempts": { "type": "integer", "minimum": 1 },
+        "backoff": { "type": "string", "enum": ["fixed", "linear", "exponential"] },
+        "initialDelay": { "type": "integer", "minimum": 0 },
+        "maxDelay": { "type": "integer", "minimum": 0 }
+      },
+      "description": "Default retry configuration"
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,72 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "config.schema.json",
+  "title": "AI Workflow CLI Configuration",
+  "description": "Schema for AI Workflow CLI configuration file",
+  "type": "object",
+  "properties": {
+    "models": {
+      "type": "object",
+      "properties": {
+        "default": {
+          "type": "string",
+          "description": "Default model to use"
+        },
+        "providers": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "apiKey": { "type": "string" },
+              "endpoint": { "type": "string" },
+              "organization": { "type": "string" },
+              "headers": {
+                "type": "object",
+                "additionalProperties": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "hooks": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": ["workflow"],
+          "properties": {
+            "workflow": { "type": "string" },
+            "failFast": { "type": "boolean" },
+            "branches": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "fallback": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "modelChain": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "trigger": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "errorType": { "type": "string" },
+              "count": { "type": "integer" }
+            }
+          }
+        }
+      }
+    }
+  },
+  "additionalProperties": false
+}

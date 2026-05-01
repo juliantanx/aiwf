@@ -1,0 +1,25 @@
+apiVersion: aiwf/v1
+kind: Workflow
+name: commit-msg
+version: 1.0.0
+description: Generate commit message from changes
+
+triggers:
+  - manual
+
+inputs:
+  diff:
+    type: string
+    description: Git diff of changes
+    required: true
+
+steps:
+  - id: summarize
+    agent: summarizer
+    input:
+      content: ${{ inputs.diff }}
+      max_length: 50
+
+output:
+  format: text
+  message: ${{ steps.summarize.output.summary }}

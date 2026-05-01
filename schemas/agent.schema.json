@@ -1,0 +1,50 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "agent.schema.json",
+  "title": "AI Agent Definition",
+  "description": "Schema for custom agent definition",
+  "type": "object",
+  "required": ["apiVersion", "kind", "id", "name", "description"],
+  "properties": {
+    "apiVersion": {
+      "type": "string",
+      "const": "aiwf/v1"
+    },
+    "kind": {
+      "type": "string",
+      "const": "Agent"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9-]+$"
+    },
+    "name": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "extends": {
+      "type": "string",
+      "description": "Base agent to extend"
+    },
+    "config": {
+      "type": "object",
+      "properties": {
+        "defaultModel": { "type": "string" },
+        "systemPrompt": { "type": "string" },
+        "parameters": {
+          "type": "object",
+          "additionalProperties": {}
+        },
+        "outputFormat": {
+          "type": "object",
+          "properties": {
+            "template": { "type": "string" }
+          }
+        }
+      }
+    }
+  },
+  "additionalProperties": false
+}

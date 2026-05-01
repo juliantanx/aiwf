@@ -1,0 +1,30 @@
+apiVersion: aiwf/v1
+kind: Workflow
+name: test-gen
+version: 1.0.0
+description: Generate test cases for code
+
+triggers:
+  - manual
+
+inputs:
+  code:
+    type: string
+    description: Code to generate tests for
+    required: true
+  framework:
+    type: string
+    description: Testing framework (jest, pytest, mocha, etc.)
+    default: jest
+
+steps:
+  - id: generate
+    agent: tester
+    input:
+      code: ${{ inputs.code }}
+      framework: ${{ inputs.framework }}
+
+output:
+  format: markdown
+  tests: ${{ steps.generate.output.tests }}
+  coverage_estimate: ${{ steps.generate.output.coverage_estimate }}
