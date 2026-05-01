@@ -50,10 +50,16 @@ jobs:
       - name: Type check
         run: npm run typecheck
 
-  release:
+      - name: Lint
+        run: npm run lint
+
+  publish:
     needs: [build, lint]
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.NPM_AUTOMATION_TOKEN != ''
+    permissions:
+      contents: read
+      id-token: write
 
     steps:
       - uses: actions/checkout@v4
