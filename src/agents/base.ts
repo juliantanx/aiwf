@@ -4,7 +4,6 @@ import type {
   AgentConfig,
   ExecutionContext,
 } from '../core/types.js';
-import type { ModelAdapter } from '../models/interface.js';
 
 export abstract class Agent {
   abstract readonly config: AgentConfig;

@@ -1,5 +1,5 @@
 import { join } from 'path';
-import { readdir, stat, mkdir, writeFile, rm } from 'fs/promises';
+import { readdir, stat, writeFile, rm } from 'fs/promises';
 import type { RunRecord } from '../core/types.js';
 import { fileExists, readJson, writeJson, ensureDir } from '../utils/file.js';
 import { logger } from '../utils/logger.js';

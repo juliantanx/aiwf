@@ -1,6 +1,5 @@
 import { Command } from 'commander';
 import inquirer from 'inquirer';
-import { join } from 'path';
 import { findProjectRoot } from '../storage/config.js';
 import { saveWorkflow, workflowExists } from '../storage/workflow.js';
 import { saveCustomAgent } from '../storage/agents.js';
@@ -233,7 +232,7 @@ async function createWorkflow(projectRoot: string, name?: string, options: Creat
   logger.raw(`Path: .ai-workflows/workflows/${name}.yaml`);
 }
 
-async function createAgent(projectRoot: string, name?: string, options: CreateOptions = {}): Promise<void> {
+async function createAgent(projectRoot: string, name?: string, _options: CreateOptions = {}): Promise<void> {
   // Get agent ID
   if (!name) {
     const answer = await inquirer.prompt([

@@ -1,7 +1,7 @@
 import { Command } from 'commander';
 import inquirer from 'inquirer';
 import { join } from 'path';
-import { ensureDir, fileExists, writeJson } from '../utils/file.js';
+import { ensureDir, fileExists } from '../utils/file.js';
 import { logger } from '../utils/logger.js';
 import { saveConfig, configExists, getDefaultConfig } from '../storage/config.js';
 import { saveWorkflow } from '../storage/workflow.js';

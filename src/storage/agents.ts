@@ -1,5 +1,5 @@
 import { join } from 'path';
-import { readdir, stat, writeFile } from 'fs/promises';
+import { readdir, writeFile } from 'fs/promises';
 import type { AgentConfig } from '../core/types.js';
 import { fileExists, readYaml, ensureDir } from '../utils/file.js';
 import { parseYaml } from '../core/parser.js';
@@ -44,7 +44,7 @@ export async function listCustomAgents(projectRoot: string): Promise<Array<{
           config: config as AgentConfig,
         });
       }
-    } catch (error) {
+    } catch (_error) {
       logger.warn(`Skipped invalid agent file: ${entry}`);
     }
   }
@@ -130,7 +130,7 @@ function createCustomAgent(definition: CustomAgentDefinition): Agent {
       return this.executeWithModel(mergedInput, context);
     }
 
-    private async executeWithModel(input: AgentInput, context: ExecutionContext): Promise<AgentOutput> {
+    private async executeWithModel(input: AgentInput, _context: ExecutionContext): Promise<AgentOutput> {
       const modelId = config.defaultModel ?? modelRegistry.getDefaultModel();
 
       try {

@@ -87,9 +87,9 @@ describe('VariableResolver', () => {
 });
 
 describe('generateRunId', () => {
-  it('should generate run ID in correct format', () => {
+  it('should generate run ID in correct format (12 char hex)', () => {
     const id = generateRunId();
-    expect(id).toMatch(/^\d{4}-\d{2}-\d{2}-\d{3}$/);
+    expect(id).toMatch(/^[a-f0-9]{12}$/);
   });
 
   it('should generate unique IDs', () => {
@@ -97,7 +97,7 @@ describe('generateRunId', () => {
     for (let i = 0; i < 100; i++) {
       ids.add(generateRunId());
     }
-    // All IDs should be unique (with 100 samples)
-    expect(ids.size).toBeGreaterThan(90);
+    // All IDs should be unique (UUID-based)
+    expect(ids.size).toBe(100);
   });
 });

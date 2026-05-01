@@ -48,7 +48,7 @@ export function createMockAdapter(config: MockModelConfig = {}): ModelAdapter {
 
     async *chatStream(
       messages: ChatMessage[],
-      modelConfig: ModelConfig = {}
+      _modelConfig: ModelConfig = {}
     ): AsyncGenerator<string> {
       if (error) {
         throw error;

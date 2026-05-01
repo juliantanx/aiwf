@@ -1,4 +1,3 @@
-import { cosmiconfig } from 'cosmiconfig';
 import type { AiwfConfig } from '../core/types.js';
 import { fileExists, readYaml, ensureDir } from '../utils/file.js';
 import { parseConfigYaml } from '../core/parser.js';
@@ -6,8 +5,6 @@ import { join, parse, dirname } from 'path';
 import { writeFile } from 'fs/promises';
 import yaml from 'js-yaml';
 import { AIWF_DIR } from './constants.js';
-
-const CONFIG_MODULE_NAME = 'aiwf';
 
 export async function findProjectRoot(startPath: string = process.cwd()): Promise<string | null> {
   let currentPath = startPath;

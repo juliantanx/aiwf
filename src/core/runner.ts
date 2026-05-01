@@ -6,7 +6,6 @@ import type {
   RunStepRecord,
   AgentOutput,
   RunResult,
-  GitContext,
   AiwfConfig,
 } from './types.js';
 import { VariableResolver, createResolver, generateRunId } from './resolver.js';
@@ -16,8 +15,8 @@ import { estimateCost } from '../models/interface.js';
 import { getGitContext } from '../utils/git.js';
 import { logger } from '../utils/logger.js';
 import { withRetry, getErrorType } from '../utils/retry.js';
-import { saveRun, saveRunOutput, getRunsPath } from '../storage/run.js';
-import { loadConfig, getAiwfPath } from '../storage/config.js';
+import { saveRun, saveRunOutput } from '../storage/run.js';
+import { loadConfig } from '../storage/config.js';
 
 export interface RunnerOptions {
   dryRun?: boolean;

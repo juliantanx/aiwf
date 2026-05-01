@@ -1,5 +1,4 @@
 import { Command } from 'commander';
-import { join } from 'path';
 import { findProjectRoot } from '../storage/config.js';
 import { listWorkflows } from '../storage/workflow.js';
 import { parseWorkflowYaml } from '../core/parser.js';
@@ -27,7 +26,7 @@ export async function validateCommand(file?: string, options: ValidateOptions = 
   }
 }
 
-async function validateFile(filePath: string, strict: boolean): Promise<void> {
+async function validateFile(filePath: string, _strict: boolean): Promise<void> {
   if (!(await fileExists(filePath))) {
     logger.error(`File not found: ${filePath}`);
     process.exit(1);

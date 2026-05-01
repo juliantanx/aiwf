@@ -1,5 +1,5 @@
 import { readFile, writeFile, mkdir, access, stat, readdir, rm } from 'fs/promises';
-import { dirname, join, extname, basename } from 'path';
+import { join, extname, basename } from 'path';
 import { constants } from 'fs';
 
 export async function fileExists(filePath: string): Promise<boolean> {

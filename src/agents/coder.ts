@@ -52,7 +52,7 @@ export class CoderAgent extends Agent {
     defaultModel: 'anthropic/claude-sonnet-4-6',
   };
 
-  async execute(input: AgentInput, context: ExecutionContext): Promise<AgentOutput> {
+  async execute(input: AgentInput, _context: ExecutionContext): Promise<AgentOutput> {
     const prompt = input['prompt'];
     const language = input['language'] as string | undefined;
     const ctx = input['context'];

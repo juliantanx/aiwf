@@ -43,7 +43,7 @@ export function getModelPricing(modelId: string): {
   inputPerToken: number;
   outputPerToken: number;
 } {
-  const { provider, model } = parseModelIdentifier(modelId);
+  const { model } = parseModelIdentifier(modelId);
   const modelLower = model.toLowerCase();
 
   // Pricing per 1M tokens (as of 2024, approximate values)

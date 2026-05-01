@@ -55,7 +55,7 @@ export class TesterAgent extends Agent {
     defaultModel: 'anthropic/claude-sonnet-4-6',
   };
 
-  async execute(input: AgentInput, context: ExecutionContext): Promise<AgentOutput> {
+  async execute(input: AgentInput, _context: ExecutionContext): Promise<AgentOutput> {
     const code = input['code'];
     const framework = input['framework'] as string | undefined;
 

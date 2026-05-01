@@ -1,7 +1,7 @@
 import { Command } from 'commander';
 import { join } from 'path';
 import { findProjectRoot, loadConfig } from '../storage/config.js';
-import { installGitHook, uninstallGitHook, getGitHookPath, isGitRepo, getGitContext } from '../utils/git.js';
+import { installGitHook, uninstallGitHook, isGitRepo, getGitContext } from '../utils/git.js';
 import { loadWorkflow } from '../storage/workflow.js';
 import { runWorkflow } from '../core/runner.js';
 import { modelRegistry } from '../models/registry.js';

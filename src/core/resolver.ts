@@ -1,4 +1,4 @@
-import type { ExecutionContext, GitContext } from './types.js';
+import type { GitContext } from './types.js';
 import { randomUUID } from 'crypto';
 
 // Variable syntax: ${{ source.path.to.value }}
@@ -133,5 +133,5 @@ export function createResolver(context: Partial<ResolverContext> = {}): Variable
 }
 
 export function generateRunId(): string {
-  return randomUUID().slice(0, 12);
+  return randomUUID().replace(/-/g, '').slice(0, 12);
 }

@@ -1,5 +1,5 @@
 import { join } from 'path';
-import { readdir, stat } from 'fs/promises';
+import { readdir } from 'fs/promises';
 import { writeFile, unlink } from 'fs/promises';
 import type { Workflow } from '../core/types.js';
 import { fileExists, readYaml, ensureDir } from '../utils/file.js';
